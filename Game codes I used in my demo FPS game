@@ -1,0 +1,125 @@
+-- Changing Day and Night cycle --
+
+local RunService = game:GetService("RunService")
+local Lighting = game:GetService("Lighting")
+
+local function updateTime()
+	local currentTime = Lighting.ClockTime
+	local timeInterval = 0.008
+	local newTime = currentTime + timeInterval
+	Lighting.ClockTime = newTime
+end
+
+RunService.Heartbeat:Connect(updateTime)
+
+-- Teleporting pads --
+
+local Pad = game.Workspace.Levels.Pad2
+
+script.Parent.Touched:Connect(function(hit)
+	local Player = game.Players:GetPlayerFromCharacter(hit.Parent)
+	if Player then
+
+		local CurrentlyTeleporting = Player.Character:FindFirstChild("CurrentlyTeleporting")
+		if not CurrentlyTeleporting then return end
+
+		if not CurrentlyTeleporting.Value then
+			CurrentlyTeleporting.Value = true
+			Player.Character.HumanoidRootPart.CFrame = Pad.CFrame + Vector3.new(0,5,0)
+			wait(6)
+			CurrentlyTeleporting.Value = false
+		end
+	end
+end)
+
+-- Checkpoint spwan points--
+
+script.Parent.Touched:Connect(function(hit)
+	if game.Players:FindFirstChild(hit.Parent.Name) then
+		local plr = game.Players:FindFirstChild(hit.Parent.Name)
+		if plr:FindFirstChild("leaderstats") and plr.leaderstats:FindFirstChild("Stage") then
+			if script.Parent.Stage.Value > plr.leaderstats.Stage.Value then
+				plr.leaderstats.Stage.Value = script.Parent.Stage.Value
+			end
+		end
+	end
+end)
+
+-- Health Gui -- 
+
+local player = game.Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoid = character:WaitForChild("Humanoid")
+local health = humanoid.Health
+local maxHealth = humanoid.MaxHealth
+local healthDisplay = script.Parent
+
+humanoid.HealthChanged:Connect(function(Damage)
+	if health <= 0 then
+		healthDisplay.Size = UDim2.new(Damage / maxHealth, 0, 1, 0)
+		healthDisplay.HeathText.Text = "Dead.."
+		return
+	end
+	healthDisplay.Size = UDim2.new(Damage / maxHealth, 0, 1, 0)
+	healthDisplay.HeathText.Text = "Health ".. math.floor(Damage).. " / ".. maxHealth
+end)
+
+-- Experience Gui --
+
+local Player = game.Players.LocalPlayer
+
+local Exp = Player.leaderstats.Exp
+local RequiredExp = Player.RequiredExp
+
+Exp.Changed:Connect(function(Changed)
+	if Changed then
+		script.Parent.ExpFrame:TweenSize(UDim2.new(Exp.Value / RequiredExp.Value, 0, 1, 0 ))
+	end
+end)
+
+while wait()do
+	script.Parent.ExpLabel.Text = Exp.Value.." / "..RequiredExp.Value
+end
+
+-- Level Gui --
+local Player = game.Players.LocalPlayer
+
+while wait() do
+	script.Parent.Text = "Level "..Player.leaderstats.Level.Value
+end
+
+-- Leveling up and increasing needed Experience for the next level --
+game.Players.PlayerAdded:Connect(function(Player)
+
+	local leaderstats = Instance.new("Folder", Player)
+	leaderstats.Name = "leaderstats"
+
+	local stage = Instance.new("IntValue", leaderstats)
+	stage.Name = "Stage"
+	stage.Value = 1
+
+	local Level = Instance.new("NumberValue", leaderstats)
+	Level.Name = "Level"
+	Level.Value = 1
+
+	local Exp = Instance.new("NumberValue", leaderstats)
+	Exp.Name = "Exp"
+	Exp.Value = 0
+
+	local RequiredExp = Instance.new("NumberValue", Player)
+	RequiredExp.Name = "RequiredExp"
+	RequiredExp.Value = Level.Value * 100
+
+	--Leveling--
+
+	Exp.Changed:Connect(function(Changed)
+		if Exp.Value >= RequiredExp.Value then
+			Exp.Value = 0
+
+			Level.Value += 1
+
+			RequiredExp.Value = Level.Value * 100
+		end
+	end)
+
+end)
